@@ -2,6 +2,5 @@
 *.pyc
 .ipynb_checkpoints/
 .vscode/
-.env
 logs/
-data/
+
