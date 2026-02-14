@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 
 DEFAULT_BASE_URL = "https://paper-api.alpaca.markets"
 DEFAULT_DATA_FEED = "iex"
-PLACEHOLDERS = {"your_api_key_here", "your_api_secret_here", "your_key_here", "your_secret_here"}
+PLACEHOLDERS = {"PKB56UAGKUE2ADNYKHAUCGMPCY", "D8LToFobXqb3jJ1FoCBrGJECK3LVdGu5xtMzB6Z7E6jo", "PKB56UAGKUE2ADNYKHAUCGMPCY", "yD8LToFobXqb3jJ1FoCBrGJECK3LVdGu5xtMzB6Z7E6jo"}
 
 
 def _load_env() -> None:
