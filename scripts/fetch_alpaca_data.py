@@ -23,13 +23,16 @@ from dotenv import load_dotenv
 
 DEFAULT_BASE_URL = "https://paper-api.alpaca.markets"
 DEFAULT_DATA_FEED = "iex"
+<<<<<<< HEAD
 PLACEHOLDERS = {"PKB56UAGKUE2ADNYKHAUCGMPCY", "D8LToFobXqb3jJ1FoCBrGJECK3LVdGu5xtMzB6Z7E6jo", "PKB56UAGKUE2ADNYKHAUCGMPCY", "yD8LToFobXqb3jJ1FoCBrGJECK3LVdGu5xtMzB6Z7E6jo"}
+=======
+PLACEHOLDERS = {"your_api_key_here", "your_api_secret_here", "your_key_here", "your_secret_here"}
+REPO_ROOT = Path(__file__).resolve().parents[1]
+>>>>>>> 83421798a5be6d8d1b5dad3adb19aac552586e80
 
 
 def _load_env() -> None:
-    here = Path(__file__).resolve()
-    repo_root = here.parents[1]
-    env_paths = [Path.cwd() / ".env", repo_root / ".env"]
+    env_paths = [Path.cwd() / ".env", REPO_ROOT / ".env"]
     for env_path in env_paths:
         if env_path.exists():
             load_dotenv(env_path, override=False)
@@ -165,12 +168,12 @@ def _fetch_crypto(
 
 def _default_output(symbol: str, timeframe: str, asset: str) -> Path:
     safe_symbol = symbol.upper().replace("/", "")
-    return Path("data") / f"{safe_symbol}_{timeframe}_{asset}_alpaca_raw.csv"
+    return REPO_ROOT / "data" / f"{safe_symbol}_{timeframe}_{asset}_alpaca_raw.csv"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Fetch candles from Alpaca and save CSV.")
-    parser.add_argument("--symbol", required=True, help="Asset symbol, e.g. AAPL or BTC/USD")
+    parser.add_argument("--symbol", default="AAPL", help="Asset symbol, e.g. AAPL or BTC/USD (default: AAPL)")
     parser.add_argument("--asset", choices=["stock", "crypto"], default="stock")
     parser.add_argument("--timeframe", default="1Min", help="Examples: 1Min, 5Min, 1Hour, 1Day")
     parser.add_argument("--limit", type=int, default=1000)
@@ -182,7 +185,9 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    out_path = Path(args.out) if args.out else _default_output(args.symbol, args.timeframe, args.asset)
+    out_path = Path(args.out).expanduser() if args.out else _default_output(args.symbol, args.timeframe, args.asset)
+    if not out_path.is_absolute():
+        out_path = (Path.cwd() / out_path).resolve()
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     try:
@@ -201,7 +206,7 @@ def main() -> int:
             return 2
 
         df.to_csv(out_path, index=False)
-        print(f"Saved {len(df)} rows to {out_path}")
+        print(f"Saved {len(df)} rows to {out_path.resolve()}")
         return 0
     except Exception as exc:
         print(f"Fetch failed: {exc}", file=sys.stderr)
