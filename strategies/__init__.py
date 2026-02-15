@@ -12,6 +12,7 @@ from .strategy_base import (
     MovingAverageStrategy,
     Strategy,
     TemplateStrategy,
+    RealTimePERatioStrategy
 )
 
 

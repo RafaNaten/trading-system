@@ -33,6 +33,7 @@ Example:
             return df
 """
 
+import os
 import numpy as np
 import pandas as pd
 
@@ -194,6 +195,87 @@ class DemoStrategy(Strategy):
         df.loc[df["change"] < 0, "signal"] = -1  # Price went down -> sell
         df["position"] = df["signal"]
         df["target_qty"] = self.position_size
+        return df
+
+class RealTimePERatioStrategy(Strategy):
+    """
+    Cross-Sectional Value Strategy:
+    Calculates P/E ratios in real-time using external EPS data and ranks
+    a 10-stock tech basket to go Long on 'Cheap' stocks and Short on 'Expensive' ones.
+    """
+    def __init__(self, eps_file='EPS_data.csv', position_size=10.0):
+        self.position_size = position_size
+
+        # 1. Determine the path dynamically
+        strategies_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = os.path.dirname(strategies_dir) 
+        path_in_data = os.path.join(root_dir, 'data', eps_file)
+        path_in_root = os.path.join(root_dir, eps_file)
+
+        final_path = None
+        if os.path.exists(path_in_data):
+            final_path = path_in_data
+        elif os.path.exists(path_in_root):
+            final_path = path_in_root
+
+        # 2. Try to load the file, but use fallback if it fails
+        eps_df = pd.read_csv(final_path)
+        if eps_df.empty:
+            raise ValueError("File is empty")
+
+        # Cleanup headers
+        eps_df.columns = [c.strip().capitalize() if c.strip().lower() == 'eps' else c.strip() for c in eps_df.columns]
+        self.eps_lookup = dict(zip(eps_df['Ticker'], eps_df['Eps']))
+        print(f"[INFO] Successfully loaded EPS data from file.")
+            
+    def add_indicators(self, df):
+        """
+        Calculates the real-time P/E ratio for every row in the dataframe.
+        """
+        # Divide the current price (Close) by the fixed EPS for that ticker
+        df['current_pe'] = df['Close'] / df['Ticker'].map(self.eps_lookup)
+        
+        # Clean up any potential division by zero or missing data
+        df['current_pe'] = df['current_pe'].replace([np.inf, -np.inf], np.nan).fillna(0)
+        
+        return df
+
+    def generate_signals(self, df):
+        """
+        Ranks stocks by valuation at every timestamp and assigns position weights.
+        """
+        df['signal'] = 0
+        df['target_qty'] = 0
+
+        # 1. Rank tickers at each minute (Datetime) from lowest P/E to highest P/E
+        # Rank 1.0 = Lowest P/E (Value), Rank 10.0 = Highest P/E (Overvalued)
+        df['rank'] = df.groupby('Datetime')['current_pe'].rank(ascending=True)
+
+        # 2. Assign Trading Signals based on Rank
+        # Logic: 
+        # Rank 1-2 (Bottom 20%): Strong Buy  | Weight: +2
+        # Rank 3-4 (Next 20%):   Weak Buy    | Weight: +1
+        # Rank 5-6 (Middle):     Hold        | Weight:  0
+        # Rank 7-8 (Next 20%):   Weak Sell   | Weight: -1
+        # Rank 9-10 (Top 20%):   Strong Sell | Weight: -2
+
+        # --- BUY SIGNALS ---
+        df.loc[df['rank'] <= 4, 'signal'] = 1
+        
+        # --- SELL SIGNALS ---
+        df.loc[df['rank'] >= 7, 'signal'] = -1
+
+        # 3. Apply Multiplier to Position Size
+        # Double size for "Strong" signals (ranks 1, 2, 9, 10)
+        strong_mask = (df['rank'] <= 2) | (df['rank'] >= 9)
+        weak_mask = ((df['rank'] > 2) & (df['rank'] <= 4)) | ((df['rank'] >= 7) & (df['rank'] < 9))
+        
+        df.loc[strong_mask, 'target_qty'] = self.position_size * 2
+        df.loc[weak_mask, 'target_qty'] = self.position_size
+        
+        # Ensure 'position' column exists for the backtester matching engine
+        df['position'] = df['signal']
+
         return df
 
 
