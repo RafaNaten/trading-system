@@ -197,7 +197,7 @@ class DemoStrategy(Strategy):
         df["target_qty"] = self.position_size
         return df
 
-class RealTimePERatioStrategy(Strategy):
+class QuintileFactorArbitrage(Strategy):
     """
     Cross-Sectional Value Strategy:
     Calculates P/E ratios in real-time using external EPS data and ranks

@@ -14,7 +14,7 @@ import time
 from core.alpaca_trader import AlpacaTrader
 from core.logger import get_logger, get_trade_logger
 from pipeline.alpaca import clean_market_data, save_bars
-from strategies import RealTimePERatioStrategy, MovingAverageStrategy, TemplateStrategy, CryptoTrendStrategy, DemoStrategy, get_strategy_class, list_strategies
+from strategies import QuintileFactorArbitrage, MovingAverageStrategy, TemplateStrategy, CryptoTrendStrategy, DemoStrategy, get_strategy_class, list_strategies
 import time
 import argparse
 import os
