@@ -33,6 +33,9 @@ def _build_registry() -> Dict[str, Type[Strategy]]:
     registry.setdefault("crypto_trend_ema", CryptoTrendStrategy)
     registry.setdefault("demo", DemoStrategy)
     registry.setdefault("fast", DemoStrategy)
+    registry.setdefault("quintile", QuintileFactorArbitrage)
+    registry.setdefault("value_quintile", QuintileFactorArbitrage)
+    registry.setdefault("daily_value", QuintileFactorArbitrage)
     return registry
 
 
@@ -59,6 +62,7 @@ __all__ = [
     "MovingAverageStrategy",
     "CryptoTrendStrategy",
     "DemoStrategy",
+    "QuintileFactorArbitrage",
     "get_strategy_class",
     "list_strategies",
 ]
