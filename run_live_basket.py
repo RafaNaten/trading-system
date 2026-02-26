@@ -97,26 +97,26 @@ def fetch_latest_basket_data(
             ).df
             if bars.empty:
                 continue
-            latest = bars.iloc[-1]
-            ts = bars.index[-1]
-            rows.append(
-                {
-                    "Datetime": ts,
-                    "Ticker": symbol,
-                    "Open": float(latest["open"]),
-                    "High": float(latest["high"]),
-                    "Low": float(latest["low"]),
-                    "Close": float(latest["close"]),
-                    "Volume": float(latest["volume"]),
-                }
-            )
+            bars = bars.tail(lookback)
+            for ts, row in bars.iterrows():
+                rows.append(
+                    {
+                        "Datetime": ts,
+                        "Ticker": symbol,
+                        "Open": float(row["open"]),
+                        "High": float(row["high"]),
+                        "Low": float(row["low"]),
+                        "Close": float(row["close"]),
+                        "Volume": float(row["volume"]),
+                    }
+                )
         except Exception as exc:
             print(f"[WARN] {symbol}: fetch failed: {exc}")
     if not rows:
         return pd.DataFrame()
     df = pd.DataFrame(rows)
     df["Datetime"] = pd.to_datetime(df["Datetime"], utc=True, errors="coerce")
-    return df.dropna(subset=["Datetime"]).sort_values(["Datetime", "Ticker"])
+    return df.dropna(subset=["Datetime"]).sort_values(["Datetime", "Ticker"]).reset_index(drop=True)
 
 
 def _current_positions(api: tradeapi.REST) -> dict[str, int]:
@@ -182,6 +182,11 @@ def run_once(
     latest = results.sort_values("Datetime").groupby("Ticker", as_index=False).tail(1).copy()
     latest["target_qty"] = pd.to_numeric(latest.get("target_qty", 0), errors="coerce").fillna(0.0)
     targets = {row["Ticker"]: int(round(row["target_qty"])) for _, row in latest.iterrows()}
+    non_zero = sum(1 for v in targets.values() if v != 0)
+    print(
+        f"[INFO] Strategy evaluated {df['Ticker'].nunique()} symbols over {df['Datetime'].nunique()} bars. "
+        f"Non-zero targets: {non_zero}"
+    )
     rebalance_portfolio(api, symbols=symbols, targets=targets, dry_run=dry_run)
 
 
